@@ -1,104 +1,44 @@
-# Supply Chain Command Center — Demo Script
+# Demo Script: Supply Chain Command Center
+## ~70-second walkthrough — AWS + Snowflake
 
-## Story
+---
 
-You're Sarah Chen, Global Logistics Director at a major manufacturer. Your morning begins with an alert: containers are stuck at Singapore. Within 3.5 minutes, you'll discover the disruption, trace its cascading impact across 12 downstream shipments, identify the underperforming carrier, and get an AI-recommended rerouting strategy.
+## The Story
+Three shipments stuck at Singapore PSA. Twelve more delayed downstream. $3M in goods sitting in port. Pacific Express Lines at 62% on-time. Resolve it in under a minute.
+
+---
 
 ## Personas
 
-| Persona | Title | Goal |
-|---------|-------|------|
-| **Sarah Chen** | Global Logistics Director | Real-time disruption response, carrier accountability |
-| **James Park** | VP Supply Chain | Portfolio-level visibility, strategic carrier decisions |
+| Persona | Tool | What they care about |
+|---|---|---|
+| Logistics Operator | Streamlit on Snowflake | Live shipment tracking, stuck containers, carrier scorecards |
+| Supply Chain VP | Amazon QuickSight + Amazon Q | Network KPIs, carrier mix, value-at-risk |
 
-## What's Built
+---
 
-| Layer | Object | Purpose |
-|-------|--------|---------|
-| Data | 50K shipments, 100K containers, 30 carriers, 20 ports | Global logistics network |
-| Dynamic Tables | SHIPMENT_STATUS, CARRIER_PERFORMANCE, PORT_CONGESTION | Real-time curated views |
-| ML | Transit Time Forecast, Delay Anomaly Detection | Predictive intelligence |
-| Search | LOGISTICS_SEARCH (100 docs) | Procedure & policy retrieval |
-| Semantic View | SUPPLY_CHAIN_SEMANTIC_VIEW | Natural language analytics |
-| Agent | SUPPLY_CHAIN_COMMAND_AGENT | Conversational AI assistant |
-| Streamlit | SUPPLY_CHAIN_COMMAND_CENTER | Executive dashboard |
+## Script
 
-## Narrative Arc
+### [0:00–0:10] HOOK
+> "Three shipments stuck at Singapore PSA. Twelve more delayed downstream. Pacific Express Lines at 62% on-time. Let's resolve it in under a minute."
 
-```
-ALERT → DISCOVER → TRACE → DIAGNOSE → RECOMMEND → RESOLVE
-  │         │         │         │           │          │
-  ▼         ▼         ▼         ▼           ▼          ▼
-Stuck    Singapore  12 ships   Pacific     Reroute   Work
-containers  94%     delayed   Express 62%  via alt   order
-  (3)     util.              on-time      port     created
-```
+### [0:10–0:35] SNOWFLAKE — STREAMLIT
+> Open `MANUFACTURING_SUPPLY_CHAIN.APP.SUPPLY_CHAIN_COMMAND_CENTER`.
+> "Overview page — red banner flags Singapore at 94% utilization, Pacific Express the worst carrier. Stuck Shipments page lists each one, with the 12 downstream Singapore origins right under it. Carrier Performance shows Pareto volume: Maersk 6,300 shipments at 91%, Pacific Express 1,000 at 62%. Three Dynamic Tables — `SHIPMENT_STATUS`, `CARRIER_PERFORMANCE`, `PORT_CONGESTION` — refresh every five minutes."
 
-## Timed Script (3.5 minutes)
+### [0:35–0:50] CORTEX AI
+> "Ask the Data: 'Which carrier has the most delayed shipments?' Cortex Analyst over `SUPPLY_CHAIN_SEMANTIC_VIEW` returns the SQL and the answer. Logistics Search runs Cortex Search over 100 contracts — type 'port congestion diversion policy' and the right clauses surface."
 
-### Opening — Dashboard Overview (0:00–0:20)
-- Open Streamlit app — SUPPLY_CHAIN_COMMAND_CENTER
-- "I'm Sarah Chen, running global logistics for our manufacturing network"
-- Show KPI cards: 50K shipments | 3 stuck | 12 delayed | 62% worst carrier
-- **Key visual:** Red alert banner on Singapore congestion
+### [0:50–1:05] AWS
+> "Switch to QuickSight. `mfg-supply-chain-dashboard` live-queries the same Snowflake data: KPIs for stuck/delayed/value, top carriers, status mix. S3 stage `s3://sg-manufacturing-demos-2026/supply-chain/` lands the raw logistics docs. Amazon Q topic `mfg-supply-chain-q`: 'Which ports are above 85% utilization?' answers instantly."
 
-### Beat 1 — Discover the Disruption (0:20–0:45)
-- Click into Port Congestion view
-- "Singapore PSA is at 94% utilization — that's critical"
-- Show 3 containers stuck, carrier Pacific Express Lines
-- "These containers hold components for our Electronics line"
-- **Number:** 94% utilization, 3 stuck containers
+### [1:05–1:10] CLOSE
+> "Snowflake powers the operations room. AWS gives leadership the executive view. Same governed data, two consumption patterns."
 
-### Beat 2 — Trace Cascading Impact (0:45–1:15)
-- Navigate to Shipment Status tab
-- Filter: STATUS = 'DELAYED', ORIGIN = 'Singapore'
-- "12 downstream shipments are now delayed because of this bottleneck"
-- Show delay hours ranging from 24 to 96
-- **Number:** 12 delayed shipments, up to 96 hours delay
-
-### Beat 3 — Diagnose the Carrier (1:15–1:50)
-- Switch to Carrier Performance view
-- "Pacific Express Lines — 62% on-time rate. That's our worst performer"
-- Compare against fleet average (~87%)
-- "This is a pattern, not an incident. 3 stuck shipments from the same carrier"
-- **Number:** 62% on-time vs 87% fleet average
-
-### Beat 4 — Ask the AI Agent (1:50–2:30)
-- Open AI Assistant tab
-- Type: "What are my options for the 3 stuck containers at Singapore?"
-- Agent responds with: reroute via Port Klang (78% util), negotiate expedited customs, escalate to Pacific Express management
-- "The agent is cross-referencing our logistics docs and real-time data"
-- **Key moment:** AI provides actionable 3-option recommendation
-
-### Beat 5 — Search Logistics Procedures (2:30–3:00)
-- Type: "What's our SLA with Pacific Express Lines?"
-- Cortex Search retrieves contract terms
-- "We're within rights to invoke the penalty clause — 3 consecutive misses"
-- Show relevant document snippet
-- **Number:** SLA threshold: 85% on-time required
-
-### Closing — Strategic Decision (3:00–3:30)
-- Return to dashboard overview
-- "In under 4 minutes, I went from alert to action plan"
-- "Reroute the 3 containers, flag Pacific Express for contract review"
-- "This is the power of having your entire supply chain in one intelligent platform"
-- **Tagline:** "From disruption to decision in minutes, not days"
+---
 
 ## Pre-Recording Checklist
-
-- [ ] Streamlit app loaded and responsive
-- [ ] Singapore showing 94% utilization, 3 STUCK
-- [ ] Pacific Express Lines at 62% visible in carrier table
-- [ ] 12 DELAYED shipments filterable
-- [ ] Agent responding with reroute recommendations
-- [ ] Search returning SLA documents
-- [ ] All KPI cards rendering correctly
-- [ ] Warehouse CORTEX is STARTED
-
-## Key Questions to Anticipate
-
-1. **"How fresh is this data?"** — Dynamic Tables refresh every 60 seconds from S3 stage
-2. **"Can this handle more shipments?"** — Architecture scales to millions; Snowflake elastic compute
-3. **"How does the AI know about our procedures?"** — Cortex Search indexes 100 logistics documents; agent retrieves relevant context
-4. **"What about multi-modal carriers?"** — Data model supports air, sea, rail, road — just add carrier records
-5. **"Is this real-time?"** — Near real-time: 1-minute target lag on Dynamic Tables, streaming ingest possible via Snowpipe
+- [ ] Verify 3 STUCK at Singapore PSA in `SHIPMENT_STATUS`
+- [ ] Verify Pacific Express Lines at 62% on-time, 1,000 shipments
+- [ ] Open https://app.snowflake.com/YOUR_ORG/sg_<YOUR_CONNECTION>/#/streamlit-apps/MANUFACTURING_SUPPLY_CHAIN.APP.SUPPLY_CHAIN_COMMAND_CENTER
+- [ ] Open https://us-west-2.quicksight.aws.amazon.com/sn/dashboards/mfg-supply-chain-dashboard
