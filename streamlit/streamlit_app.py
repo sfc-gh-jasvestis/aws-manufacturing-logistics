@@ -129,8 +129,10 @@ elif page == "Port Congestion":
     c3.metric("High Risk", int(ports["CONGESTION_LEVEL"].isin(["HIGH", "CRITICAL"]).sum()))
     c4.metric("Stuck Containers", f"{int(ports['STUCK_CONTAINERS'].sum()):,}")
 
-    fig = px.scatter_geo(ports, lat="LAT", lon="LON", size="CONTAINERS_AT_PORT", color="CONGESTION_LEVEL", color_discrete_map=CONGESTION_COLORS, hover_name="PORT_NAME", hover_data={"COUNTRY": True, "CURRENT_UTILIZATION_PCT": ":.1f", "STUCK_CONTAINERS": True, "LAT": False, "LON": False}, size_max=35, title="Global Port Congestion Map")
-    fig.update_layout(height=450, margin=dict(t=40, b=10), geo=dict(showframe=False, showcoastlines=True, projection_type="natural earth", landcolor="#f5f5f5", oceancolor="#e8f4fd", showocean=True, showcountries=True, countrycolor="#dddddd"))
+    tm = ports.copy()
+    tm["CONTAINERS_AT_PORT"] = tm["CONTAINERS_AT_PORT"].fillna(1).clip(lower=1)
+    fig = px.treemap(tm, path=[px.Constant("Global"), "COUNTRY", "PORT_NAME"], values="CONTAINERS_AT_PORT", color="CURRENT_UTILIZATION_PCT", color_continuous_scale="RdYlGn_r", range_color=[60, 95], hover_data={"STUCK_CONTAINERS": True, "CURRENT_UTILIZATION_PCT": ":.1f"}, title="Port Congestion Treemap (size = containers at port, color = utilization %)")
+    fig.update_layout(height=420, margin=dict(t=40, b=10))
     st.plotly_chart(fig, use_container_width=True)
 
     fig2 = px.bar(ports.sort_values("CURRENT_UTILIZATION_PCT", ascending=True), x="CURRENT_UTILIZATION_PCT", y="PORT_NAME", orientation="h", color="CONGESTION_LEVEL", color_discrete_map=CONGESTION_COLORS, title="Port Utilization %", hover_data=["STUCK_CONTAINERS", "CONTAINERS_AT_PORT"])
