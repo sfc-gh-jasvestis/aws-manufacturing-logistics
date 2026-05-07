@@ -12,7 +12,7 @@ st.set_page_config(page_title="Supply Chain Command Center", layout="wide", page
 STATUS_COLORS = {"DELIVERED": "#2ECC71", "IN_TRANSIT": "#3498DB", "DELAYED": "#F39C12", "STUCK": "#E74C3C", "CANCELLED": "#95A5A6"}
 CONGESTION_COLORS = {"NORMAL": "#2ECC71", "MODERATE": "#3498DB", "HIGH": "#F39C12", "CRITICAL": "#E74C3C"}
 
-page = st.sidebar.radio("Navigation", ["Overview", "Carrier Performance", "Port Congestion", "Stuck Shipments", "Logistics Search", "Ask Supply Chain"], label_visibility="collapsed")
+page = st.sidebar.radio("Navigation", ["Overview", "Carrier Performance", "Port Congestion", "Stuck Shipments", "Live Map (AWS Location)", "Logistics Search", "Ask Supply Chain", "AWS Architecture"], label_visibility="collapsed")
 st.sidebar.divider()
 st.sidebar.markdown("### Supply Chain Command")
 st.sidebar.caption("Real-time logistics monitoring across 30 carriers, 20 ports, 15 warehouses")
@@ -162,6 +162,48 @@ elif page == "Stuck Shipments":
         st.warning(f"{len(delayed_sg)} shipments delayed by Singapore congestion")
         st.dataframe(delayed_sg[["SHIPMENT_ID", "CARRIER_NAME", "DEST_PORT_NAME", "COMMODITY_TYPE", "DAYS_DELAYED", "VALUE_USD"]], use_container_width=True, hide_index=True)
 
+elif page == "Live Map (AWS Location)":
+    st.title("Live Vessel Map")
+    st.caption("Real-time vessel positions — Snowflake DIM_VESSEL_TRACK + Amazon Location Service tracker `mfg-vessels`")
+    try:
+        vessels = session.sql("SELECT VESSEL_NAME, CARRIER_NAME, LAT, LON, SPEED_KTS, DESTINATION_PORT, STATUS FROM MANUFACTURING_SUPPLY_CHAIN.CURATED.VW_VESSEL_LIVE").to_pandas()
+        ports = load_ports()
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Vessels Tracked", len(vessels))
+        c2.metric("Stuck", int((vessels["STATUS"]=="STUCK").sum()))
+        c3.metric("In Transit", int((vessels["STATUS"]=="IN_TRANSIT").sum()))
+        c4.metric("Avg Speed (kts)", f"{vessels['SPEED_KTS'].astype(float).mean():.1f}")
+        if int((vessels["STATUS"]=="STUCK").sum()) > 0:
+            st.error("Geofence breach: 3 vessels of Pacific Express Lines stuck in the Singapore PSA approach geofence. EventBridge rule `mfg-stuck-shipment-rule` fires SNS topic `mfg-stuck-alerts`.")
+        fig = go.Figure()
+        fig.add_trace(go.Scattermapbox(lat=ports["LAT"], lon=ports["LON"], mode="markers", marker=dict(size=12, color="#3498DB"), name="Ports", text=ports["PORT_NAME"], hoverinfo="text"))
+        sc = {"STUCK": "#E74C3C", "IN_TRANSIT": "#2ECC71"}
+        for status, sub in vessels.groupby("STATUS"):
+            fig.add_trace(go.Scattermapbox(lat=sub["LAT"], lon=sub["LON"], mode="markers", marker=dict(size=14, color=sc.get(status, "#95A5A6")), name=f"Vessels - {status}", text=sub["VESSEL_NAME"]+" -> "+sub["DESTINATION_PORT"], hoverinfo="text"))
+        fig.update_layout(mapbox_style="open-street-map", mapbox_center={"lat": 20, "lon": 100}, mapbox_zoom=2, height=520, margin=dict(l=0, r=0, t=10, b=0))
+        st.plotly_chart(fig, use_container_width=True)
+        st.subheader("Vessels")
+        st.dataframe(vessels, use_container_width=True, hide_index=True)
+
+        st.divider()
+        st.subheader("Trigger EventBridge Alert")
+        st.caption("Calls `SP_RAISE_STUCK_ALERT` which returns the EventBridge `PutEvents` payload that the customer's bus `mfg-supply-chain-bus` would receive (target: SNS `mfg-stuck-alerts`).")
+        ship = load_shipments()
+        stuck_ids = ship[ship["STATUS"]=="STUCK"]["SHIPMENT_ID"].tolist()
+        if stuck_ids:
+            sid = st.selectbox("Stuck shipment", stuck_ids)
+            if st.button("Raise alert"):
+                with st.spinner("Generating EventBridge payload..."):
+                    sql = f"CALL MANUFACTURING_SUPPLY_CHAIN.AI.SP_RAISE_STUCK_ALERT('{sid}')"
+                    res = session.sql(sql).to_pandas()
+                    payload = res.iloc[0, 0]
+                    st.success("EventBridge PutEvents payload:")
+                    st.code(payload, language="json")
+        else:
+            st.info("No stuck shipments to alert on.")
+    except Exception as e:
+        st.error(f"Live map error: {e}")
+
 elif page == "Logistics Search":
     st.title("Logistics Policy Search")
     st.caption("Cortex Search across shipping policies, contracts, and procedures")
@@ -206,3 +248,31 @@ elif page == "Ask Supply Chain":
                     st.error(parsed)
             except Exception as e:
                 st.error(f"Error: {e}")
+
+elif page == "AWS Architecture":
+    st.title("AWS Architecture - Geo-aware Logistics Control Tower")
+    st.caption("Snowflake + Amazon Location Service + EventBridge + SNS + QuickSight")
+    a, b, c, d = st.columns(4)
+    a.metric("AWS Hero", "Location Service")
+    b.metric("Event Bus", "mfg-supply-chain-bus")
+    c.metric("Tracker", "mfg-vessels")
+    d.metric("SNS Topic", "mfg-stuck-alerts")
+    st.markdown(
+        """
+**Data flow**
+
+1. **S3** (`s3://sg-manufacturing-demos-2026/supply-chain/`) lands raw logistics docs and AIS feeds.
+2. **Snowflake** Dynamic Tables (`SHIPMENT_STATUS`, `CARRIER_PERFORMANCE`, `PORT_CONGESTION`, `DIM_VESSEL_TRACK`) refresh every 5 minutes.
+3. **Amazon Location Service** tracker `mfg-vessels` consumes the same lat/lon, geofence `singapore-psa-approach` flags any vessel that loiters > 6 h.
+4. When a Snowflake shipment goes `STUCK`, `SP_RAISE_STUCK_ALERT` returns an EventBridge `PutEvents` payload to bus `mfg-supply-chain-bus`.
+5. EventBridge rule `mfg-stuck-shipment-rule` fans out to SNS topic `mfg-stuck-alerts` (mobile push + email + Slack).
+6. **QuickSight** dashboard `mfg-supply-chain-dashboard` live-queries Snowflake for the executive view; **Amazon Q topic** `mfg-supply-chain-q` powers natural-language Q&A.
+
+**ARNs (account __AWS_ACCOUNT_ID__ / us-west-2)**
+
+- `arn:aws:geo:us-west-2:__AWS_ACCOUNT_ID__:tracker/mfg-vessels`
+- `arn:aws:geo:us-west-2:__AWS_ACCOUNT_ID__:geofence-collection/singapore-psa`
+- `arn:aws:events:us-west-2:__AWS_ACCOUNT_ID__:event-bus/mfg-supply-chain-bus`
+- `arn:aws:sns:us-west-2:__AWS_ACCOUNT_ID__:mfg-stuck-alerts`
+        """
+    )
