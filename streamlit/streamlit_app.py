@@ -24,7 +24,7 @@ st.set_page_config(page_title="Supply Chain Command Center", layout="wide", page
 STATUS_COLORS = {"DELIVERED": "#2ECC71", "IN_TRANSIT": "#3498DB", "DELAYED": "#F39C12", "STUCK": "#E74C3C", "CANCELLED": "#95A5A6"}
 CONGESTION_COLORS = {"NORMAL": "#2ECC71", "MODERATE": "#3498DB", "HIGH": "#F39C12", "CRITICAL": "#E74C3C"}
 
-page = st.sidebar.radio("Navigation", ["Overview", "Carrier Performance", "Port Congestion", "Stuck Shipments", "Live Map (AWS Location)", "Logistics Search", "Ask Supply Chain", "AWS Architecture"], label_visibility="collapsed")
+page = st.sidebar.radio("Navigation", ["Overview", "Carrier Performance", "Port Congestion", "Stuck Shipments", "Live Map (AWS Location)", "Logistics Search", "Ask Supply Chain"], label_visibility="collapsed")
 st.sidebar.divider()
 st.sidebar.markdown("### Supply Chain Command")
 st.sidebar.caption("Real-time logistics monitoring across 30 carriers, 20 ports, 15 warehouses")
@@ -284,30 +284,3 @@ elif page == "Ask Supply Chain":
             except Exception as e:
                 st.error(f"Error: {e}")
 
-elif page == "AWS Architecture":
-    st.title("AWS Architecture - Geo-aware Logistics Control Tower")
-    st.caption("Snowflake + Amazon Location Service + EventBridge + SNS + QuickSight")
-    a, b, c, d = st.columns(4)
-    a.metric("AWS Hero", "Location Service")
-    b.metric("Event Bus", "mfg-supply-chain-bus")
-    c.metric("Tracker", "mfg-vessels")
-    d.metric("SNS Topic", "mfg-stuck-alerts")
-    st.markdown(
-        """
-**Data flow**
-
-1. **S3** (`s3://sg-manufacturing-demos-2026/supply-chain/`) lands raw logistics docs and AIS feeds.
-2. **Snowflake** Dynamic Tables (`SHIPMENT_STATUS`, `CARRIER_PERFORMANCE`, `PORT_CONGESTION`, `DIM_VESSEL_TRACK`) refresh every 5 minutes.
-3. **Amazon Location Service** tracker `mfg-vessels` consumes the same lat/lon, geofence `singapore-psa-approach` flags any vessel that loiters > 6 h.
-4. When a Snowflake shipment goes `STUCK`, `SP_RAISE_STUCK_ALERT` returns an EventBridge `PutEvents` payload to bus `mfg-supply-chain-bus`.
-5. EventBridge rule `mfg-stuck-shipment-rule` fans out to SNS topic `mfg-stuck-alerts` (mobile push + email + Slack).
-6. **QuickSight** dashboard `mfg-supply-chain-dashboard` live-queries Snowflake for the executive view; **Amazon Q topic** `mfg-supply-chain-q` powers natural-language Q&A.
-
-**ARNs (account __AWS_ACCOUNT_ID__ / us-west-2)**
-
-- `arn:aws:geo:us-west-2:__AWS_ACCOUNT_ID__:tracker/mfg-vessels`
-- `arn:aws:geo:us-west-2:__AWS_ACCOUNT_ID__:geofence-collection/singapore-psa`
-- `arn:aws:events:us-west-2:__AWS_ACCOUNT_ID__:event-bus/mfg-supply-chain-bus`
-- `arn:aws:sns:us-west-2:__AWS_ACCOUNT_ID__:mfg-stuck-alerts`
-        """
-    )
