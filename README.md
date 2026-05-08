@@ -2,36 +2,25 @@
 
 Real-time supply chain visibility powered by Snowflake Cortex AI — from raw logistics data to intelligent recommendations in minutes.
 
-## AWS Hero — Geo-aware Logistics Control Tower
+## Architecture
 
-Snowflake + **Amazon Location Service** + **EventBridge** + **SNS** + **QuickSight**. Three Pacific Express vessels stuck in the Singapore PSA approach geofence; the alert fans out to mobile, email, and Slack in one EventBridge rule.
+A geo-aware logistics control tower built on **Snowflake** (Dynamic Tables, Cortex Search, Cortex Analyst, semantic view) and **AWS** (S3, Amazon Location Service, EventBridge, SNS, QuickSight + Amazon Q). Three Pacific Express vessels stuck in the Singapore PSA approach geofence; the alert fans out to mobile, email, and Slack in one EventBridge rule.
 
 ```mermaid
 flowchart LR
     S3[S3 logistics docs] --> SF[Snowflake Dynamic Tables]
+    SF --> SemView[Semantic View]
+    SF --> CSearch[Cortex Search 100 contracts]
     SF --> LOC[Amazon Location Service tracker mfg-vessels]
     SF --> EB[EventBridge bus mfg-supply-chain-bus]
     EB --> SNS[SNS topic mfg-stuck-alerts]
     SNS --> Mobile[Mobile push]
     SNS --> Slack[Slack channel]
     SNS --> Email[Email]
+    SF --> ST[Streamlit Command Center]
     SF --> QS[QuickSight + Amazon Q]
 ```
 
-## Architecture
-
-```
-┌─────────┐    ┌───────────────────────────────────────────────────────┐    ┌─────────────┐
-│  AWS S3 │───▶│                   SNOWFLAKE                           │───▶│  Streamlit  │
-│  (Raw)  │    │  Stages → Dynamic Tables → ML Models → Cortex Agent  │    │  Dashboard  │
-└─────────┘    └───────────────────────────────────────────────────────┘    └─────────────┘
-                         │                        │
-                         ▼                        ▼
-                  ┌─────────────┐         ┌─────────────┐
-                  │  Semantic   │         │   Cortex    │
-                  │    View     │         │   Search    │
-                  └─────────────┘         └─────────────┘
-```
 
 ## Personas
 
