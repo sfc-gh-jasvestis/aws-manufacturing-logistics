@@ -66,16 +66,17 @@ if page == "Overview":
     st.divider()
     cc1, cc2 = st.columns(2)
     with cc1:
-        sc = session.sql("SELECT STATUS, COUNT(*) AS COUNT FROM MANUFACTURING_SUPPLY_CHAIN.CURATED.SHIPMENT_STATUS GROUP BY STATUS ORDER BY COUNT DESC").to_pandas()
-        sc["COUNT"] = pd.to_numeric(sc["COUNT"], errors="coerce")
+        sc = session.sql("SELECT STATUS, COUNT(*)::INT AS COUNT FROM MANUFACTURING_SUPPLY_CHAIN.CURATED.SHIPMENT_STATUS GROUP BY STATUS ORDER BY COUNT DESC").to_pandas()
+        sc["COUNT"] = sc["COUNT"].astype(float)
         fig = px.pie(sc, names="STATUS", values="COUNT", title="Shipments by Status", color="STATUS", color_discrete_map=STATUS_COLORS, hole=0.4)
         fig.update_traces(textinfo="label+percent", sort=False)
         fig.update_layout(height=350, margin=dict(t=40, b=10))
         st.plotly_chart(fig, use_container_width=True)
     with cc2:
-        com = ship.groupby("COMMODITY_TYPE")["VALUE_USD"].sum().reset_index().sort_values("VALUE_USD", ascending=True)
-        com["VALUE_M"] = com["VALUE_USD"] / 1e6
-        fig = px.bar(com.tail(10), x="VALUE_M", y="COMMODITY_TYPE", orientation="h", title="Top 10 Commodities by Value ($M)", color="VALUE_M", color_continuous_scale="Blues")
+        com = session.sql("SELECT COMMODITY_TYPE, (SUM(VALUE_USD)/1e6)::FLOAT AS VALUE_M FROM MANUFACTURING_SUPPLY_CHAIN.CURATED.SHIPMENT_STATUS GROUP BY COMMODITY_TYPE ORDER BY VALUE_M DESC LIMIT 10").to_pandas()
+        com["VALUE_M"] = com["VALUE_M"].astype(float)
+        com = com.sort_values("VALUE_M", ascending=True)
+        fig = px.bar(com, x="VALUE_M", y="COMMODITY_TYPE", orientation="h", title="Top 10 Commodities by Value ($M)", color="VALUE_M", color_continuous_scale="Blues")
         fig.update_layout(height=350, margin=dict(t=40, b=10), coloraxis_showscale=False)
         st.plotly_chart(fig, use_container_width=True)
 
