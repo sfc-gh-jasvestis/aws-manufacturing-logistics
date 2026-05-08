@@ -66,9 +66,10 @@ if page == "Overview":
     st.divider()
     cc1, cc2 = st.columns(2)
     with cc1:
-        sc = ship["STATUS"].value_counts().reset_index()
-        sc.columns = ["STATUS", "COUNT"]
+        sc = session.sql("SELECT STATUS, COUNT(*) AS COUNT FROM MANUFACTURING_SUPPLY_CHAIN.CURATED.SHIPMENT_STATUS GROUP BY STATUS ORDER BY COUNT DESC").to_pandas()
+        sc["COUNT"] = pd.to_numeric(sc["COUNT"], errors="coerce")
         fig = px.pie(sc, names="STATUS", values="COUNT", title="Shipments by Status", color="STATUS", color_discrete_map=STATUS_COLORS, hole=0.4)
+        fig.update_traces(textinfo="label+percent", sort=False)
         fig.update_layout(height=350, margin=dict(t=40, b=10))
         st.plotly_chart(fig, use_container_width=True)
     with cc2:
