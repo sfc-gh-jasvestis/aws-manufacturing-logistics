@@ -27,3 +27,4 @@ snowflake.yml
 *.pem
 *.key
 credentials.*
+streamlit/output/
