@@ -78,16 +78,19 @@ if page == "Overview":
     st.divider()
     cc1, cc2 = st.columns(2)
     with cc1:
-        sc = coerce_numeric(session.sql("SELECT STATUS, COUNT(*)::INT AS COUNT FROM MANUFACTURING_SUPPLY_CHAIN.CURATED.SHIPMENT_STATUS GROUP BY STATUS ORDER BY COUNT DESC").to_pandas(), ["COUNT"])
-        fig = px.pie(sc, names="STATUS", values="COUNT", title="Shipments by Status", color="STATUS", color_discrete_map=STATUS_COLORS, hole=0.4)
-        fig.update_traces(textinfo="label+percent", sort=False)
-        fig.update_layout(height=350, margin=dict(t=40, b=10))
+        sc = session.sql("SELECT STATUS, COUNT(*)::INT AS COUNT FROM MANUFACTURING_SUPPLY_CHAIN.CURATED.SHIPMENT_STATUS GROUP BY STATUS ORDER BY COUNT DESC").to_pandas()
+        labels = [str(x) for x in sc["STATUS"].tolist()]
+        values = [int(x) for x in sc["COUNT"].tolist()]
+        colors = [STATUS_COLORS.get(l, "#888") for l in labels]
+        fig = go.Figure(data=[go.Pie(labels=labels, values=values, hole=0.4, marker=dict(colors=colors), sort=False, textinfo="label+percent")])
+        fig.update_layout(title="Shipments by Status", height=350, margin=dict(t=40, b=10))
         st.plotly_chart(fig, use_container_width=True)
     with cc2:
-        com = coerce_numeric(session.sql("SELECT COMMODITY_TYPE, (SUM(VALUE_USD)/1e6)::FLOAT AS VALUE_M FROM MANUFACTURING_SUPPLY_CHAIN.CURATED.SHIPMENT_STATUS GROUP BY COMMODITY_TYPE ORDER BY VALUE_M DESC LIMIT 10").to_pandas(), ["VALUE_M"])
-        com = com.sort_values("VALUE_M", ascending=True)
-        fig = px.bar(com, x="VALUE_M", y="COMMODITY_TYPE", orientation="h", title="Top 10 Commodities by Value ($M)", color="VALUE_M", color_continuous_scale="Blues")
-        fig.update_layout(height=350, margin=dict(t=40, b=10), coloraxis_showscale=False)
+        com = session.sql("SELECT COMMODITY_TYPE, (SUM(VALUE_USD)/1e6)::FLOAT AS VALUE_M FROM MANUFACTURING_SUPPLY_CHAIN.CURATED.SHIPMENT_STATUS GROUP BY COMMODITY_TYPE ORDER BY VALUE_M ASC LIMIT 10").to_pandas()
+        x_vals = [float(v) for v in com["VALUE_M"].tolist()]
+        y_vals = [str(v) for v in com["COMMODITY_TYPE"].tolist()]
+        fig = go.Figure(data=[go.Bar(x=x_vals, y=y_vals, orientation="h", marker=dict(color=x_vals, colorscale="Blues"))])
+        fig.update_layout(title="Top 10 Commodities by Value ($M)", height=350, margin=dict(t=40, b=10), xaxis_title="VALUE_M", yaxis_title="COMMODITY_TYPE")
         st.plotly_chart(fig, use_container_width=True)
 
 elif page == "Carrier Performance":
@@ -106,21 +109,27 @@ elif page == "Carrier Performance":
     c3.metric("Below 80% target", int((car["ON_TIME_PCT"] < 80).sum()))
 
     car_sorted = car.sort_values("ON_TIME_PCT")
-    fig = px.bar(car_sorted, x="ON_TIME_PCT", y="CARRIER_NAME", orientation="h", color="ON_TIME_PCT", color_continuous_scale="RdYlGn", range_color=[60, 95], title="On-Time % by Carrier")
+    x_vals = [float(v) for v in car_sorted["ON_TIME_PCT"].tolist()]
+    y_vals = [str(v) for v in car_sorted["CARRIER_NAME"].tolist()]
+    fig = go.Figure(data=[go.Bar(x=x_vals, y=y_vals, orientation="h", marker=dict(color=x_vals, colorscale="RdYlGn", cmin=60, cmax=95, colorbar=dict(title="On-Time %")), hovertemplate="<b>%{y}</b><br>On-Time: %{x:.1f}%<extra></extra>")])
     fig.add_vline(x=85, line_dash="dash", line_color="green", annotation_text="Target 85%")
-    fig.update_layout(height=600, margin=dict(t=40, b=10, l=180), coloraxis_colorbar=dict(title="On-Time %"))
+    fig.update_layout(title="On-Time % by Carrier", height=600, margin=dict(t=40, b=10, l=180), xaxis_title="On-Time %", yaxis_title="")
     st.plotly_chart(fig, use_container_width=True)
 
     cc1, cc2 = st.columns(2)
     with cc1:
-        top_vol = car.nlargest(15, "TOTAL_SHIPMENTS")
-        fig = px.bar(top_vol.sort_values("TOTAL_SHIPMENTS"), x="TOTAL_SHIPMENTS", y="CARRIER_NAME", orientation="h", title="Top 15 Carriers by Volume", color="TOTAL_SHIPMENTS", color_continuous_scale="Blues")
-        fig.update_layout(height=450, margin=dict(t=40, b=10, l=180), coloraxis_showscale=False)
+        top_vol = car.nlargest(15, "TOTAL_SHIPMENTS").sort_values("TOTAL_SHIPMENTS")
+        x_vals = [int(v) for v in top_vol["TOTAL_SHIPMENTS"].tolist()]
+        y_vals = [str(v) for v in top_vol["CARRIER_NAME"].tolist()]
+        fig = go.Figure(data=[go.Bar(x=x_vals, y=y_vals, orientation="h", marker=dict(color=x_vals, colorscale="Blues"), hovertemplate="<b>%{y}</b><br>Shipments: %{x:,}<extra></extra>")])
+        fig.update_layout(title="Top 15 Carriers by Volume", height=450, margin=dict(t=40, b=10, l=180), xaxis_title="Total Shipments", yaxis_title="")
         st.plotly_chart(fig, use_container_width=True)
     with cc2:
-        worst10 = car.nsmallest(10, "ON_TIME_PCT")
-        fig = px.bar(worst10.sort_values("AVG_DELAY_DAYS"), x="AVG_DELAY_DAYS", y="CARRIER_NAME", orientation="h", title="Avg Delay Days — 10 Worst Carriers", color="AVG_DELAY_DAYS", color_continuous_scale="OrRd")
-        fig.update_layout(height=450, margin=dict(t=40, b=10, l=180), coloraxis_showscale=False)
+        worst10 = car.nsmallest(10, "ON_TIME_PCT").sort_values("AVG_DELAY_DAYS")
+        x_vals = [float(v) for v in worst10["AVG_DELAY_DAYS"].tolist()]
+        y_vals = [str(v) for v in worst10["CARRIER_NAME"].tolist()]
+        fig = go.Figure(data=[go.Bar(x=x_vals, y=y_vals, orientation="h", marker=dict(color=x_vals, colorscale="OrRd"), hovertemplate="<b>%{y}</b><br>Avg Delay: %{x:.2f} days<extra></extra>")])
+        fig.update_layout(title="Avg Delay Days — 10 Worst Carriers", height=450, margin=dict(t=40, b=10, l=180), xaxis_title="Avg Delay Days", yaxis_title="")
         st.plotly_chart(fig, use_container_width=True)
 
 elif page == "Port Congestion":
@@ -143,14 +152,28 @@ elif page == "Port Congestion":
 
     tm = ports.copy()
     tm["CONTAINERS_AT_PORT"] = tm["CONTAINERS_AT_PORT"].fillna(1).clip(lower=1)
-    fig = px.treemap(tm, path=[px.Constant("Global"), "COUNTRY", "PORT_NAME"], values="CONTAINERS_AT_PORT", color="CURRENT_UTILIZATION_PCT", color_continuous_scale="RdYlGn_r", range_color=[60, 95], hover_data={"STUCK_CONTAINERS": True, "CURRENT_UTILIZATION_PCT": ":.1f"}, title="Port Congestion Treemap (size = containers at port, color = utilization %)")
-    fig.update_layout(height=420, margin=dict(t=40, b=10))
+    labels, parents, values, colors, customdata = ["Global"], [""], [0], [None], [[0, 0.0]]
+    for country in sorted(tm["COUNTRY"].dropna().unique()):
+        labels.append(str(country)); parents.append("Global"); values.append(0); colors.append(None); customdata.append([0, 0.0])
+    for _, r in tm.iterrows():
+        labels.append(str(r["PORT_NAME"]))
+        parents.append(str(r["COUNTRY"]))
+        values.append(int(r["CONTAINERS_AT_PORT"]))
+        colors.append(float(r["CURRENT_UTILIZATION_PCT"]))
+        customdata.append([int(r["STUCK_CONTAINERS"]), float(r["CURRENT_UTILIZATION_PCT"])])
+    fig = go.Figure(go.Treemap(labels=labels, parents=parents, values=values, branchvalues="total", marker=dict(colors=colors, colorscale="RdYlGn_r", cmin=60, cmax=95, showscale=True, colorbar=dict(title="Util %")), customdata=customdata, hovertemplate="<b>%{label}</b><br>Containers: %{value:,}<br>Utilization: %{customdata[1]:.1f}%<br>Stuck: %{customdata[0]:,}<extra></extra>"))
+    fig.update_layout(title="Port Congestion Treemap (size = containers at port, color = utilization %)", height=420, margin=dict(t=40, b=10))
     st.plotly_chart(fig, use_container_width=True)
 
-    fig2 = px.bar(ports.sort_values("CURRENT_UTILIZATION_PCT", ascending=True), x="CURRENT_UTILIZATION_PCT", y="PORT_NAME", orientation="h", color="CONGESTION_LEVEL", color_discrete_map=CONGESTION_COLORS, title="Port Utilization %", hover_data=["STUCK_CONTAINERS", "CONTAINERS_AT_PORT"])
+    ports_sorted = ports.sort_values("CURRENT_UTILIZATION_PCT", ascending=True)
+    x_vals = [float(v) for v in ports_sorted["CURRENT_UTILIZATION_PCT"].tolist()]
+    y_vals = [str(v) for v in ports_sorted["PORT_NAME"].tolist()]
+    bar_colors = [CONGESTION_COLORS.get(str(c), "#888") for c in ports_sorted["CONGESTION_LEVEL"].tolist()]
+    stuck_cd = [[int(s), int(c)] for s, c in zip(ports_sorted["STUCK_CONTAINERS"].tolist(), ports_sorted["CONTAINERS_AT_PORT"].tolist())]
+    fig2 = go.Figure(data=[go.Bar(x=x_vals, y=y_vals, orientation="h", marker=dict(color=bar_colors), customdata=stuck_cd, hovertemplate="<b>%{y}</b><br>Utilization: %{x:.1f}%<br>Stuck: %{customdata[0]:,}<br>Containers: %{customdata[1]:,}<extra></extra>")])
     fig2.add_vline(x=90, line_dash="dash", line_color="red", annotation_text="Critical 90%")
     fig2.add_vline(x=80, line_dash="dash", line_color="orange", annotation_text="High 80%")
-    fig2.update_layout(height=520, margin=dict(t=40, b=10, l=180))
+    fig2.update_layout(title="Port Utilization %", height=520, margin=dict(t=40, b=10, l=180), xaxis_title="Utilization %", yaxis_title="")
     st.plotly_chart(fig2, use_container_width=True)
 
     st.subheader("Port Details")
