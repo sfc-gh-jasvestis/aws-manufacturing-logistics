@@ -54,7 +54,7 @@ if page == "Overview":
     impact_at_risk = ship[ship["STATUS"].isin(["STUCK", "DELAYED"])]["IMPACT_SCORE"].sum()
 
     if stuck > 0:
-        st.error(f"INCIDENT: {stuck} shipments STUCK at Singapore PSA (Pacific Express Lines) — 12 downstream shipments DELAYED — ${impact_at_risk/1e6:.1f}M impact at risk")
+        st.error(f"INCIDENT: {stuck} shipments STUCK at Singapore PSA (Pacific Express Lines) — 12 downstream shipments DELAYED — \${impact_at_risk/1e6:.1f}M impact at risk")
 
     c1, c2, c3, c4, c5 = st.columns(5)
     c1.metric("Total Shipments", f"{len(ship):,}")
@@ -142,7 +142,7 @@ elif page == "Port Congestion":
     st.plotly_chart(fig2, use_container_width=True)
 
     st.subheader("Port Details")
-    st.dataframe(ports[["PORT_NAME", "COUNTRY", "CURRENT_UTILIZATION_PCT", "CONTAINERS_AT_PORT", "STUCK_CONTAINERS", "INBOUND_SHIPMENTS", "AVG_DWELL_HOURS", "CONGESTION_LEVEL"]].sort_values("CURRENT_UTILIZATION_PCT", ascending=False), use_container_width=True, hide_index=True)
+    st.dataframe(ports[["PORT_NAME", "COUNTRY", "CURRENT_UTILIZATION_PCT", "CONTAINERS_AT_PORT", "STUCK_CONTAINERS", "INBOUND_SHIPMENTS", "AVG_DWELL_HOURS", "CONGESTION_LEVEL"]].sort_values("CURRENT_UTILIZATION_PCT", ascending=False), use_container_width=True)
 
 elif page == "Stuck Shipments":
     st.title("Stuck & Delayed Shipments")
@@ -152,15 +152,15 @@ elif page == "Stuck Shipments":
     delayed_sg = ship[(ship["STATUS"] == "DELAYED") & (ship["ORIGIN_PORT_NAME"] == "Singapore PSA")].sort_values("DAYS_DELAYED", ascending=False).head(20)
 
     if not stuck.empty:
-        st.error(f"{len(stuck)} STUCK shipments — total value ${stuck['VALUE_USD'].sum()/1e6:.1f}M, total impact ${stuck['IMPACT_SCORE'].sum()/1e6:.1f}M")
-        st.dataframe(stuck[["SHIPMENT_ID", "CARRIER_NAME", "ORIGIN_PORT_NAME", "DEST_PORT_NAME", "COMMODITY_TYPE", "CONTAINER_COUNT", "VALUE_USD", "DAYS_DELAYED", "IMPACT_SCORE"]], use_container_width=True, hide_index=True)
+        st.error(f"{len(stuck)} STUCK shipments — total value \${stuck['VALUE_USD'].sum()/1e6:.1f}M, total impact \${stuck['IMPACT_SCORE'].sum()/1e6:.1f}M")
+        st.dataframe(stuck[["SHIPMENT_ID", "CARRIER_NAME", "ORIGIN_PORT_NAME", "DEST_PORT_NAME", "COMMODITY_TYPE", "CONTAINER_COUNT", "VALUE_USD", "DAYS_DELAYED", "IMPACT_SCORE"]], use_container_width=True)
     else:
         st.success("No stuck shipments.")
 
     st.subheader("Downstream Delayed (origin Singapore PSA)")
     if not delayed_sg.empty:
         st.warning(f"{len(delayed_sg)} shipments delayed by Singapore congestion")
-        st.dataframe(delayed_sg[["SHIPMENT_ID", "CARRIER_NAME", "DEST_PORT_NAME", "COMMODITY_TYPE", "DAYS_DELAYED", "VALUE_USD"]], use_container_width=True, hide_index=True)
+        st.dataframe(delayed_sg[["SHIPMENT_ID", "CARRIER_NAME", "DEST_PORT_NAME", "COMMODITY_TYPE", "DAYS_DELAYED", "VALUE_USD"]], use_container_width=True)
 
 elif page == "Live Map (AWS Location)":
     st.title("Live Vessel Map")
@@ -183,7 +183,7 @@ elif page == "Live Map (AWS Location)":
         fig.update_layout(mapbox_style="open-street-map", mapbox_center={"lat": 20, "lon": 100}, mapbox_zoom=2, height=520, margin=dict(l=0, r=0, t=10, b=0))
         st.plotly_chart(fig, use_container_width=True)
         st.subheader("Vessels")
-        st.dataframe(vessels, use_container_width=True, hide_index=True)
+        st.dataframe(vessels, use_container_width=True)
 
         st.divider()
         st.subheader("Trigger EventBridge Alert")
@@ -241,7 +241,7 @@ elif page == "Ask Supply Chain":
                             with st.expander("SQL"):
                                 st.code(sql, language="sql")
                             try:
-                                st.dataframe(session.sql(sql).to_pandas(), use_container_width=True, hide_index=True)
+                                st.dataframe(session.sql(sql).to_pandas(), use_container_width=True)
                             except Exception:
                                 pass
                 else:
