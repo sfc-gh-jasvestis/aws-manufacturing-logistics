@@ -7,6 +7,18 @@ import _snowflake
 from snowflake.snowpark.context import get_active_session
 
 session = get_active_session()
+
+def coerce_numeric(df, cols=None):
+    """Force Decimal/object cols to float64 so plotly renders them numerically (not as categorical)."""
+    if df is None or len(df) == 0:
+        return df
+    target = cols or [c for c in df.columns if df[c].dtype == "object"]
+    for c in target:
+        try:
+            df[c] = pd.Series([float(x) if x is not None else None for x in df[c]], index=df.index, dtype="float64")
+        except (TypeError, ValueError):
+            pass
+    return df
 st.set_page_config(page_title="Supply Chain Command Center", layout="wide", page_icon="ship")
 
 STATUS_COLORS = {"DELIVERED": "#2ECC71", "IN_TRANSIT": "#3498DB", "DELAYED": "#F39C12", "STUCK": "#E74C3C", "CANCELLED": "#95A5A6"}
@@ -20,7 +32,7 @@ st.sidebar.caption("Real-time logistics monitoring across 30 carriers, 20 ports,
 
 @st.cache_data(ttl=60)
 def load_shipments():
-    df = session.sql("SELECT STATUS, CARRIER_NAME, COMMODITY_TYPE, VALUE_USD, DAYS_DELAYED, IMPACT_SCORE, ORIGIN_PORT_NAME, DEST_PORT_NAME, CONTAINER_COUNT, SHIPMENT_ID FROM MANUFACTURING_SUPPLY_CHAIN.CURATED.SHIPMENT_STATUS").to_pandas()
+    df = coerce_numeric(session.sql("SELECT STATUS, CARRIER_NAME, COMMODITY_TYPE, VALUE_USD, DAYS_DELAYED, IMPACT_SCORE, ORIGIN_PORT_NAME, DEST_PORT_NAME, CONTAINER_COUNT, SHIPMENT_ID FROM MANUFACTURING_SUPPLY_CHAIN.CURATED.SHIPMENT_STATUS").to_pandas())
     for c in ["VALUE_USD", "DAYS_DELAYED", "IMPACT_SCORE", "CONTAINER_COUNT"]:
         df[c] = pd.to_numeric(df[c], errors="coerce")
     return df
@@ -28,7 +40,7 @@ def load_shipments():
 
 @st.cache_data(ttl=60)
 def load_carriers():
-    df = session.sql("SELECT * FROM MANUFACTURING_SUPPLY_CHAIN.CURATED.CARRIER_PERFORMANCE WHERE TOTAL_SHIPMENTS > 0").to_pandas()
+    df = coerce_numeric(session.sql("SELECT * FROM MANUFACTURING_SUPPLY_CHAIN.CURATED.CARRIER_PERFORMANCE WHERE TOTAL_SHIPMENTS > 0").to_pandas())
     for c in ["ON_TIME_PCT", "TOTAL_SHIPMENTS", "DELIVERED_COUNT", "DELAYED_COUNT", "STUCK_COUNT", "IN_TRANSIT_COUNT", "AVG_DELAY_DAYS", "TOTAL_VALUE_USD", "TOTAL_CONTAINERS"]:
         if c in df.columns:
             df[c] = pd.to_numeric(df[c], errors="coerce")
@@ -37,7 +49,7 @@ def load_carriers():
 
 @st.cache_data(ttl=60)
 def load_ports():
-    df = session.sql("SELECT * FROM MANUFACTURING_SUPPLY_CHAIN.CURATED.PORT_CONGESTION").to_pandas()
+    df = coerce_numeric(session.sql("SELECT * FROM MANUFACTURING_SUPPLY_CHAIN.CURATED.PORT_CONGESTION").to_pandas())
     for c in ["LAT", "LON", "CAPACITY_TEU", "CURRENT_UTILIZATION_PCT", "CONTAINERS_AT_PORT", "STUCK_CONTAINERS", "INBOUND_SHIPMENTS", "AVG_DWELL_HOURS"]:
         df[c] = pd.to_numeric(df[c], errors="coerce")
     return df.dropna(subset=["LAT", "LON"])
@@ -66,15 +78,13 @@ if page == "Overview":
     st.divider()
     cc1, cc2 = st.columns(2)
     with cc1:
-        sc = session.sql("SELECT STATUS, COUNT(*)::INT AS COUNT FROM MANUFACTURING_SUPPLY_CHAIN.CURATED.SHIPMENT_STATUS GROUP BY STATUS ORDER BY COUNT DESC").to_pandas()
-        sc["COUNT"] = sc["COUNT"].astype(float)
+        sc = coerce_numeric(session.sql("SELECT STATUS, COUNT(*)::INT AS COUNT FROM MANUFACTURING_SUPPLY_CHAIN.CURATED.SHIPMENT_STATUS GROUP BY STATUS ORDER BY COUNT DESC").to_pandas(), ["COUNT"])
         fig = px.pie(sc, names="STATUS", values="COUNT", title="Shipments by Status", color="STATUS", color_discrete_map=STATUS_COLORS, hole=0.4)
         fig.update_traces(textinfo="label+percent", sort=False)
         fig.update_layout(height=350, margin=dict(t=40, b=10))
         st.plotly_chart(fig, use_container_width=True)
     with cc2:
-        com = session.sql("SELECT COMMODITY_TYPE, (SUM(VALUE_USD)/1e6)::FLOAT AS VALUE_M FROM MANUFACTURING_SUPPLY_CHAIN.CURATED.SHIPMENT_STATUS GROUP BY COMMODITY_TYPE ORDER BY VALUE_M DESC LIMIT 10").to_pandas()
-        com["VALUE_M"] = com["VALUE_M"].astype(float)
+        com = coerce_numeric(session.sql("SELECT COMMODITY_TYPE, (SUM(VALUE_USD)/1e6)::FLOAT AS VALUE_M FROM MANUFACTURING_SUPPLY_CHAIN.CURATED.SHIPMENT_STATUS GROUP BY COMMODITY_TYPE ORDER BY VALUE_M DESC LIMIT 10").to_pandas(), ["VALUE_M"])
         com = com.sort_values("VALUE_M", ascending=True)
         fig = px.bar(com, x="VALUE_M", y="COMMODITY_TYPE", orientation="h", title="Top 10 Commodities by Value ($M)", color="VALUE_M", color_continuous_scale="Blues")
         fig.update_layout(height=350, margin=dict(t=40, b=10), coloraxis_showscale=False)
