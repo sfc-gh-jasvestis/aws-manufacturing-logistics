@@ -30,24 +30,6 @@
 
 ---
 
-## Pre-Recording Checklist
-
-- [ ] `SELECT COUNT(*) FROM MANUFACTURING_SUPPLY_CHAIN.CURATED.SHIPMENT_STATUS WHERE STATUS='STUCK'` returns 3
-- [ ] `SELECT COUNT(*) FROM MANUFACTURING_SUPPLY_CHAIN.CURATED.DIM_VESSEL_TRACK WHERE STATUS='STUCK'` returns 3
-- [ ] Pacific Express Lines on-time % = 62 in `CARRIER_PERFORMANCE`
-- [ ] Singapore PSA utilization >= 94 in `PORT_CONGESTION`
-- [ ] `CALL MANUFACTURING_SUPPLY_CHAIN.AI.SP_RAISE_STUCK_ALERT('SHP-006851')` returns valid EventBridge JSON
-- [ ] Open Streamlit: https://app.snowflake.com/YOUR_ORG/sg_<YOUR_CONNECTION>/#/streamlit-apps/MANUFACTURING_SUPPLY_CHAIN.APP.SUPPLY_CHAIN_COMMAND_CENTER
-- [ ] Open QuickSight: https://us-west-2.quicksight.aws.amazon.com/sn/dashboards/mfg-supply-chain-dashboard
-- [ ] Pre-open AWS tabs:
-  - Location Service: `https://us-west-2.console.aws.amazon.com/location/home?region=us-west-2#/tracker/mfg-vessels`
-  - EventBridge: `https://us-west-2.console.aws.amazon.com/events/home?region=us-west-2#/eventbus/mfg-supply-chain-bus`
-  - SNS: `https://us-west-2.console.aws.amazon.com/sns/v3/home?region=us-west-2#/topic/arn:aws:sns:us-west-2:__AWS_ACCOUNT_ID__:mfg-stuck-alerts`
-- [ ] Audio: quiet room, external mic
-- [ ] Resolution: 1920x1080
-
----
-
 ## Script
 
 ### [0:00–0:20] THE PROBLEM & ARCHITECTURE
