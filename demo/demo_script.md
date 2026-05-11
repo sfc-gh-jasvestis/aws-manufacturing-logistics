@@ -36,7 +36,7 @@
 - [ ] `SELECT * FROM MANUFACTURING_SUPPLY_CHAIN.CURATED.VW_VESSEL_LIVE WHERE STATUS='STUCK'` returns 3 Pacific Express Lines vessels
 - [ ] Regional Container Lines on-time % ≈ 14.7 in `CARRIER_PERFORMANCE` (worst carrier)
 - [ ] 5 CRITICAL ports, Antwerp-Bruges at 97.3% in `PORT_CONGESTION`
-- [ ] Open Streamlit: https://app.snowflake.com/YOUR_ORG/sg_<YOUR_CONNECTION>/#/streamlit-apps/MANUFACTURING_SUPPLY_CHAIN.APP.SUPPLY_CHAIN_COMMAND_CENTER
+- [ ] Open Streamlit: <YOUR_SNOWFLAKE_URL>/streamlit-apps/MANUFACTURING_SUPPLY_CHAIN.APP.SUPPLY_CHAIN_COMMAND_CENTER
 - [ ] Open QuickSight: https://us-west-2.quicksight.aws.amazon.com/sn/dashboards/mfg-supply-chain-dashboard
 - [ ] Audio: quiet room, external mic
 - [ ] Resolution: 1920x1080
