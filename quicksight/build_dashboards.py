@@ -51,7 +51,7 @@ DEMOS = [
     # (id_suffix, name, sql, kpis, charts, q_questions, ds_id)
     {
         "id": "supply-chain", "name": "Supply Chain Command Center",
-        "sql": """SELECT CARRIER_NAME, STATUS, COMMODITY_TYPE, ORIGIN_PORT_NAME,
+        "sql": """SELECT CARRIER_NAME, STATUS, COMMODITY_TYPE, ORIGIN_PORT_NAME, DEST_PORT_NAME,
        VALUE_USD::FLOAT AS VALUE_USD, DAYS_DELAYED::INT AS DAYS_DELAYED,
        IMPACT_SCORE::FLOAT AS IMPACT_SCORE, CONTAINER_COUNT::INT AS CONTAINER_COUNT,
        SHIPMENT_ID
@@ -68,10 +68,16 @@ FROM MANUFACTURING_SUPPLY_CHAIN.CURATED.SHIPMENT_STATUS""",
             {"type": "bar", "title": "Top 10 Carriers by Shipment Count",
              "x": ("CARRIER_NAME", "string"), "y": ("SHIPMENT_ID", "string", "DISTINCT_COUNT"),
              "color": ("STATUS", "string"), "topn": 10},
+            {"type": "bar", "title": "Value Exposure by Origin Port",
+             "x": ("ORIGIN_PORT_NAME", "string"), "y": ("VALUE_USD", "decimal", "SUM"),
+             "color": ("STATUS", "string")},
+            {"type": "bar", "title": "Shipments by Destination Port",
+             "x": ("DEST_PORT_NAME", "string"), "y": ("SHIPMENT_ID", "string", "DISTINCT_COUNT"),
+             "color": ("STATUS", "string")},
             {"type": "donut", "title": "Shipments by Status",
              "category": ("STATUS", "string"), "value": ("SHIPMENT_ID", "string", "DISTINCT_COUNT")},
         ],
-        "q": ["How many shipments are stuck?", "Which carrier has the most delayed shipments?", "What is the total value of stuck shipments?"],
+        "q": ["How many shipments are stuck?", "Which carrier has the most delayed shipments?", "What is the total value of stuck shipments?", "Which destinations are waiting on Singapore right now and what is the value exposure?"],
         "topic_id": "mfg-supply-chain-q", "topic_name": "Supply Chain Command Center",
         "dashboard_id": "mfg-supply-chain-dashboard",
         "dashboard_name": "Supply Chain Command Center",
@@ -752,7 +758,7 @@ def build_dashboard_definition(d, ds_arn):
                 "CrossDataset": "SINGLE_DATASET"
             })
 
-    # 2 charts row 2
+    # charts in 2-column grid below KPIs
     for i, c in enumerate(d["charts"]):
         if c["type"] == "bar":
             v = bar_visual(d, i, c)
@@ -760,10 +766,12 @@ def build_dashboard_definition(d, ds_arn):
             v = donut_visual(d, i, c)
         vid = list(v.values())[0]["VisualId"]
         visuals.append(v)
+        row = i // 2
+        col = i % 2
         layout_elements.append({
             "ElementId": vid, "ElementType": "VISUAL",
-            "ColumnIndex": i * 18, "ColumnSpan": 18,
-            "RowIndex": 5, "RowSpan": 14,
+            "ColumnIndex": col * 18, "ColumnSpan": 18,
+            "RowIndex": 5 + row * 14, "RowSpan": 14,
         })
 
     sheet = {

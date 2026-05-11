@@ -1,8 +1,8 @@
 # Demo Script: Supply Chain Command Center
-## ~3-Minute Recorded Walkthrough
+## ~3:00 Recorded Walkthrough
 **Format**: Screen recording with voiceover
 **Target**: Customer meeting / booth loop / social share
-**Pre-requisites**: Data loaded, Streamlit deployed, QuickSight dashboard published, AWS Location Service tracker `mfg-vessels` provisioned
+**Pre-requisites**: Data loaded, Streamlit deployed, QuickSight dashboard published
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Persona | Role | Tool | What they care about |
 |---|---|---|---|
-| **Logistics Operator** | Day-to-day shipment control | Streamlit in Snowflake + Live Map (AWS Location) | Stuck containers, geofence breaches, carrier scorecards, downstream delay propagation |
+| **Logistics Operator** | Day-to-day shipment control | Streamlit in Snowflake | Stuck containers, carrier scorecards, downstream delay propagation |
 | **VP Supply Chain** | Executive oversight | Amazon QuickSight + Amazon Q | Network on-time %, value-at-risk, alert fan-out timing, carrier mix |
 
 ---
@@ -21,11 +21,10 @@
 |---|---|---|
 | **Ingest (AWS)** | Amazon S3 | `s3://sg-manufacturing-demos-2026/supply-chain/` — logistics docs + AIS feeds |
 | **RAW** | 5 tables | CARRIERS (30), PORTS (20), WAREHOUSES (15), SHIPMENTS (50K), LOGISTICS_DOCS (100) |
-| **CURATED** | 3 Dynamic Tables + 1 dim | SHIPMENT_STATUS, CARRIER_PERFORMANCE, PORT_CONGESTION, DIM_VESSEL_TRACK (10 vessels) |
+| **CURATED** | 3 Dynamic Tables + 1 view | SHIPMENT_STATUS, CARRIER_PERFORMANCE, PORT_CONGESTION, VW_VESSEL_LIVE (10 vessels) |
 | **AI** | Cortex Search + Semantic View + Agent | LOGISTICS_SEARCH (100 contracts), SUPPLY_CHAIN_SEMANTIC_VIEW |
 | **ML** | FORECAST + ANOMALY | Carrier on-time forecasting + delay anomaly detection |
-| **AWS Hero** | Location Service + EventBridge + SNS | Tracker `mfg-vessels`, geofence `singapore-psa-approach`, bus `mfg-supply-chain-bus`, topic `mfg-stuck-alerts` |
-| **Consumption** | Streamlit | 8-page Supply Chain Command Center |
+| **Consumption** | Streamlit | 6-page Supply Chain Command Center |
 | | QuickSight | `mfg-supply-chain-dashboard` + Amazon Q topic `mfg-supply-chain-q` |
 
 ---
@@ -33,16 +32,12 @@
 ## Pre-Recording Checklist
 
 - [ ] `SELECT COUNT(*) FROM MANUFACTURING_SUPPLY_CHAIN.CURATED.SHIPMENT_STATUS WHERE STATUS='STUCK'` returns 3
-- [ ] `SELECT COUNT(*) FROM MANUFACTURING_SUPPLY_CHAIN.CURATED.DIM_VESSEL_TRACK WHERE STATUS='STUCK'` returns 3
-- [ ] Pacific Express Lines on-time % = 62 in `CARRIER_PERFORMANCE`
-- [ ] Singapore PSA utilization >= 94 in `PORT_CONGESTION`
-- [ ] `CALL MANUFACTURING_SUPPLY_CHAIN.AI.SP_RAISE_STUCK_ALERT('SHP-006851')` returns valid EventBridge JSON
+- [ ] `SELECT COUNT(*) FROM MANUFACTURING_SUPPLY_CHAIN.CURATED.SHIPMENT_STATUS WHERE STATUS='DELAYED'` returns 12
+- [ ] `SELECT * FROM MANUFACTURING_SUPPLY_CHAIN.CURATED.VW_VESSEL_LIVE WHERE STATUS='STUCK'` returns 3 Pacific Express Lines vessels
+- [ ] Regional Container Lines on-time % ≈ 14.7 in `CARRIER_PERFORMANCE` (worst carrier)
+- [ ] 5 CRITICAL ports, Antwerp-Bruges at 97.3% in `PORT_CONGESTION`
 - [ ] Open Streamlit: https://app.snowflake.com/YOUR_ORG/sg_<YOUR_CONNECTION>/#/streamlit-apps/MANUFACTURING_SUPPLY_CHAIN.APP.SUPPLY_CHAIN_COMMAND_CENTER
 - [ ] Open QuickSight: https://us-west-2.quicksight.aws.amazon.com/sn/dashboards/mfg-supply-chain-dashboard
-- [ ] Pre-open AWS tabs:
-  - Location Service: `https://us-west-2.console.aws.amazon.com/location/home?region=us-west-2#/tracker/mfg-vessels`
-  - EventBridge: `https://us-west-2.console.aws.amazon.com/events/home?region=us-west-2#/eventbus/mfg-supply-chain-bus`
-  - SNS: `https://us-west-2.console.aws.amazon.com/sns/v3/home?region=us-west-2#/topic/arn:aws:sns:us-west-2:__AWS_ACCOUNT_ID__:mfg-stuck-alerts`
 - [ ] Audio: quiet room, external mic
 - [ ] Resolution: 1920x1080
 
@@ -50,72 +45,76 @@
 
 ## Script
 
-### [0:00–0:20] THE PROBLEM & ARCHITECTURE
+### [0:00–0:25] PAGE 1: OVERVIEW
 
-**Show**: Streamlit Overview page, red incident banner
-
-> "Three Pacific Express vessels stuck in the Singapore PSA approach. Twelve downstream shipments delayed. Three million dollars in goods sitting at anchor — and no one in your operations room saw it coming. This is exactly the kind of incident **Snowflake plus AWS** is built to catch in real time. Logistics docs and AIS feeds land in **Amazon S3**. Snowflake builds a curated layer with **Dynamic Tables** refreshing every 5 minutes. Vessel positions also publish to **AWS Location Service** with a geofence around the port. The moment a shipment turns STUCK, **EventBridge** fires and **SNS** fans the alert to mobile, Slack, and email — all in one rule. Let me show you."
-
-### [0:20–0:45] PAGE 1: OVERVIEW
-
-**Show**: KPI strip — 3 STUCK, 12 DELAYED, $3M at risk
+**Show**: Streamlit Overview page — KPI strip, incident banner, status bar chart, commodity bar
 
 **Tech**: Dynamic Tables (5-min refresh)
 
-> "Six KPIs across 30 carriers, 20 ports, 50,000 shipments. Three STUCK, twelve DELAYED, three million at risk. No ETL job built this — it's one **Dynamic Table** refreshing every five minutes. The status pie tells you 0.6% of the network is on fire; the commodity bar tells you the most exposed value is electronics."
+> "Fifty thousand shipments, forty billion dollars of cargo moving across 30 carriers and 20 ports. The incident banner fires immediately — three shipments stuck at Singapore PSA, twelve downstream delays already triggered, seven point four million dollars in impact accumulating right now. Three ships. That's all it takes to start a cascade. The status chart — forty-six thousand delivered, three thousand in transit, and those fifteen problem shipments flagged in red and orange. The commodity bar — pharmaceuticals at six point four billion is the highest value exposure, then electronics at six billion. One Dynamic Table refreshing every five minutes — no ETL, no scheduled jobs. This incident was caught in under five minutes."
 
-### [0:45–1:10] PAGE 2: STUCK SHIPMENTS
+### [0:25–0:55] PAGE 2: PORT CONGESTION
 
-**Show**: Stuck table (3 rows) + Downstream Delayed (12 rows from Singapore PSA)
+**Show**: Port Congestion page — Antwerp-Bruges at 97%, 5 Critical, 11 High Risk (combined), 1,018 stuck containers. Scroll to Port Details table.
 
-**Tech**: Dynamic Tables + correlated subquery
+**Tech**: Dynamic Tables
 
-> "Three stuck containers — all Pacific Express, all Singapore PSA. And right under it, twelve shipments delayed *because of* Singapore congestion. The same Dynamic Table that flags the stuck shipment shows you the propagation. That's the cascading impact most ERPs hide."
+> "Five ports in CRITICAL status — all red on the chart. Antwerp-Bruges leads at ninety-seven percent utilization with 106 stuck containers. Singapore PSA at ninety-four percent. Jebel Ali, Hamburg, Ningbo — all above ninety. Eleven ports classified high risk or worse. Over a thousand containers stuck across the network. The color bands tell you severity at a glance — red is critical, orange is high risk, green is healthy. Scroll down — the details table gives you every port: utilization, containers at port, stuck count, average dwell hours, congestion level. All twenty ports, one Dynamic Table, updated every five minutes. This is why three stuck ships at Singapore become a network-wide problem."
 
-### [1:10–1:35] PAGE 3: LIVE MAP — AWS Location Service
+### [0:50–1:15] PAGE 3: CARRIER PERFORMANCE
 
-**Show**: Click `Live Map (AWS Location)` page, zoom to Singapore
+**Show**: Carrier Performance page — Regional Container Lines at 14.7%, 30 carriers ranked, 85% target line
 
-**Tech**: AWS Location Service tracker + Plotly mapbox
+**Tech**: Dynamic Tables + correlated metrics
 
-> "Same data — different lens. Three red pins inside the Singapore approach geofence. Ten vessels total, color-coded by status. The lat/lon you see in Snowflake is the *same* lat/lon publishing to **AWS Location Service** tracker `mfg-vessels`. Geofence `singapore-psa-approach` flags any vessel that loiters more than six hours. That's how the alert gets started — not by a human, by AWS."
+> "Thirty carriers ranked by on-time percentage. The dashed line is the target: eighty-five percent. Regional Container Lines at the bottom — fourteen point seven percent on-time across 716 shipments. SM Line next at twenty-two percent. Twenty-one carriers below the eighty-five percent target — that's seventy percent of your carrier base underperforming. The same Dynamic Table scoring each carrier updates every five minutes. When a carrier like Pacific Express Lines triggers the Singapore incident, this scorecard immediately reflects it. That's the data you need to renegotiate a contract or terminate one."
 
-### [1:35–2:00] EVENTBRIDGE + SNS — the AWS payoff
+### [1:15–1:40] PAGE 4: STUCK SHIPMENTS — the cascade
 
-**Show**: Pick stuck shipment, click **Raise alert**, expand JSON output
+**Show**: Stuck Shipments page — "3 STUCK shipments — total value 3.1M, total impact 4.7M" banner, table showing SHP-006851/52/53 all Pacific Express Lines originating Singapore PSA, heading to Hong Kong, Shenzhen, Guangzhou. Scroll to "Downstream Delayed" section — 12 shipments delayed by Singapore congestion, heading to Shanghai, Ningbo, Busan, and beyond.
 
-**Tech**: Stored proc returns EventBridge `PutEvents` payload
+**Tech**: Dynamic Tables + incident correlation
 
-> "Click *Raise alert*. Snowflake's stored proc bundles the shipment context — carrier, route, value, days delayed — and returns the **EventBridge** `PutEvents` payload that bus `mfg-supply-chain-bus` would receive. Rule `mfg-stuck-shipment-rule` fans this to **SNS** topic `mfg-stuck-alerts` — mobile push for the on-call operator, Slack channel for the carrier desk, email for the regional VP. One alert, three audiences, sub-second."
+> "Here's the cascade in detail. Three stuck shipments — all Pacific Express Lines, all originating Singapore PSA. Three point one million in value, four point seven million in impact. SHP-006851 heading to Hong Kong with eight containers of electronics. 006852 to Shenzhen. 006853 to Guangzhou with automotive parts. Scroll down — twelve downstream delays. And look at the carrier column — Pacific Express Lines again. They're not just stuck at Singapore, they're the carrier for the downstream shipments too. Busan, Yokohama, Colombo — all waiting. One carrier, one port, network-wide impact. This is why you need correlated data — the stuck ships AND the delayed ships are the same carrier's problem. One Dynamic Table connecting the dots."
 
-**Action**: Switch to AWS Location Service console — show tracker `mfg-vessels` with the three pins; switch to EventBridge — show rule `mfg-stuck-shipment-rule` with target `mfg-stuck-alerts`.
+### [1:40–1:55] PAGE 5: LIVE MAP
 
-### [2:00–2:25] PAGE 4: ASK THE DATA + LOGISTICS SEARCH
+**Show**: Live Vessel Map page — KPIs (10 tracked, 3 stuck, 7 in transit), stuck alert banner, vessel table
 
-**Show**: Type "Which carrier has the most delayed shipments?" — confirm answer = Pacific Express
+**Tech**: Snowflake vessel tracking view (VW_VESSEL_LIVE)
 
-**Tech**: Cortex Analyst + Semantic View
+> "Ten vessels tracked in real time. Three are stuck at Singapore PSA — all Pacific Express Lines, loitering over six hours. The same three ships from the Stuck Shipments page, now on the map. Seven in transit heading to Shanghai, Busan, Rotterdam, Shenzhen. The vessel table gives you carrier, heading, speed, destination, status — all from one Snowflake view refreshing with the Dynamic Tables."
 
-> "Natural language. **Cortex Analyst** over `SUPPLY_CHAIN_SEMANTIC_VIEW` translates plain English to SQL — Pacific Express Lines, 1,000 shipments, 62% on-time. And Logistics Search runs **Cortex Search** over 100 contracts — type 'port congestion diversion policy' and the right clause surfaces in under a second. No vector DB to operate."
+### [1:55–2:10] PAGE 6: LOGISTICS SEARCH
 
-### [2:25–2:50] QUICKSIGHT + AMAZON Q — the executive lens
+**Show**: Logistics Policy Search page — Cortex Search interface
 
-**Show**: Switch to QuickSight dashboard `mfg-supply-chain-dashboard`
+**Tech**: Cortex Search over 100 contracts
 
-**Tech**: QuickSight Snowflake direct query + Amazon Q topic
+> "Back in Snowflake — Cortex Search across 100 shipping contracts and logistics policies. Type demurrage charges and the right clause surfaces in under a second. No vector database to operate — Snowflake manages the index, the embeddings, and the retrieval."
 
-> "Same governed data, executive view. **QuickSight** dashboard `mfg-supply-chain-dashboard` live-queries Snowflake — KPIs, top carriers, value-at-risk by region. And **Amazon Q topic** `mfg-supply-chain-q` answers the VP's question — 'Which ports are above 85% utilization?' — from any device, no SQL."
+### [2:10–2:30] PAGE 7: ASK SUPPLY CHAIN — Cortex Analyst
 
-### [2:50–3:10] CLOSE
+**Show**: Ask Supply Chain page — type: "which destinations have stuck or delayed shipments from Singapore and what's the value in USD?"
 
-> "Recap. Logistics docs and AIS feeds land in **Amazon S3**. Snowflake builds the operational truth with **Dynamic Tables**, semantic search, and Cortex Analyst. **AWS Location Service** geofences the ports; **EventBridge** detects the breach; **SNS** fans the alert. **QuickSight** and **Amazon Q** give leadership the executive view. Six Snowflake capabilities, four AWS services, one geo-aware control tower. From an AIS ping at sea to an SNS push on the operator's phone — under a minute, every time. That's the **Supply Chain Command Center** on Snowflake and AWS."
+**Tech**: Cortex Analyst (Semantic View — 11 dims, 9 metrics)
+
+> "Now the power move. Natural language question: which destinations have stuck or delayed shipments from Singapore and what's the value in USD? Cortex Analyst generates the SQL, queries the same governed data, returns the answer — twelve destination ports, total value exposure. Hong Kong, Shenzhen, Guangzhou — all downstream of Singapore. Same question, same data. Watch."
+
+### [2:30–3:00] QUICKSIGHT + AMAZON Q — the executive lens
+
+**Show**: QuickSight dashboard — KPIs (4), Top 10 Carriers bar, Value by Origin Port bar, Shipments by Destination Port bar, Status donut. Scroll through visuals to show the audience the same data. Point out Singapore as top origin port, stuck/delayed status colors. Then click the **Q icon inside the dashboard** and ask: "which destinations have stuck or delayed shipments from Singapore and what's the value in USD?"
+
+**Tech**: QuickSight Snowflake direct query + Amazon Q (dashboard context sees port columns via visuals)
+
+> "Same governed data, executive view. QuickSight live-queries Snowflake — same fifty thousand shipments, same three stuck, same twelve delayed. Singapore at the top of the origin port chart. Destination ports — Hong Kong, Shenzhen, Guangzhou — all waiting on Singapore. Now — Amazon Q, same question: which destinations have stuck or delayed shipments from Singapore and what's the value in USD? Same answer. Two AI assistants, one governed truth. Cortex for the operator, Q for the VP — same numbers, one data layer. Three ships. Five minutes to detect. That's the Supply Chain Command Center."
 
 ---
 
-## Key Demo Differentiators (vs other AWS demos)
+## Key Demo Differentiators
 
-1. **AWS Location Service** — most demos stop at S3; this one uses Location Service as a real-time geo trigger.
-2. **EventBridge + SNS fan-out** — alert plumbing the customer is already paying for, finally connected to operational truth.
-3. **Geofence-driven incidents** — the demo's hero "incident" is automatically reproducible because the geofence keeps firing.
-4. **Cascading impact view** — single click reveals downstream delay propagation, not just the originating event.
-5. **Q topic answers** to try: "Which ports are above 85% utilization?" / "What's the value-at-risk for Pacific Express?" / "Which carriers haven't met SLA this month?"
+1. **Early detection narrative** — "3 ships → 12 downstream delays → 5 critical ports → $7.4M impact" is a real supply chain cascade story, not synthetic drama.
+2. **Cascading impact view** — port congestion directly correlates to stuck containers in one view.
+3. **Dynamic Tables** — zero-ETL operational layer refreshing every 5 minutes, catching incidents before they cascade.
+4. **Cortex Search** — unstructured document retrieval without external vector DB.
+5. **Cortex Analyst + QuickSight Q** — two AI assistants, same governed data, same answer.

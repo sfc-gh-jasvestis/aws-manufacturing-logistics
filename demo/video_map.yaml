@@ -1,0 +1,45 @@
+source_video: ~/movies/AWS MFG Supply Chain.mp4
+source_type: generated
+resolution: [1920, 1080]
+fps: 30
+
+title_card:
+  title: "Supply Chain Command Center"
+  subtitle: "AWS + Snowflake"
+  duration: 3.0
+
+scenes:
+  - id: "scene_01_page_1_overview"
+    label: "Overview"
+    start: 0.0
+    end: 27.0
+
+  - id: "scene_02_page_2_port_congestion"
+    label: "Port Congestion"
+    start: 27.0
+    end: 44.4
+
+  - id: "scene_03_page_3_carrier_performance"
+    label: "Carrier Performance"
+    start: 44.4
+    end: 59.1
+
+  - id: "scene_04_page_4_live_map_aws_location_service"
+    label: "Live Map"
+    start: 59.1
+    end: 78.9
+
+  - id: "scene_05_eventbridge_the_aws_payoff"
+    label: "EventBridge"
+    start: 78.9
+    end: 94.8
+
+  - id: "scene_06_page_5_logistics_search"
+    label: "Logistics Search"
+    start: 94.8
+    end: 108.6
+
+  - id: "scene_07_quicksight_the_executive_lens"
+    label: "QuickSight"
+    start: 108.6
+    end: 128.5

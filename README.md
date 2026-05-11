@@ -22,6 +22,28 @@ flowchart LR
 ```
 
 
+## Snowflake Capabilities
+
+| Capability | Implementation |
+|-----------|---------------|
+| Dynamic Tables | SHIPMENT_STATUS / CARRIER_PERFORMANCE / PORT_CONGESTION |
+| ML Functions | ML.FORECAST (transit time) + ML.ANOMALY_DETECTION (delay) |
+| Cortex Search | 100 logistics contracts and procedures indexed |
+| Cortex Agent | SupplyChainAnalyst + LogisticsSearch tools |
+| Semantic View | 11 dimensions, 9 metrics over 3 curated tables |
+| Streamlit | Multi-page Command Center: Overview / Carrier / Port / Stuck / Search / Ask |
+
+## AWS Services
+
+| Service | Role in Demo |
+|---------|-------------|
+| Amazon S3 | Logistics document and data feed storage |
+| Amazon Location Service | Real-time vessel tracking (mfg-vessels tracker) |
+| Amazon EventBridge | Event-driven stuck-shipment alerting |
+| Amazon SNS | Multi-channel alert fanout (email, SMS, Slack) |
+| Amazon QuickSight | Executive supply chain KPI dashboard |
+| Amazon Q | Natural language analytics for VP Supply Chain |
+
 ## Personas
 
 | Persona | Role | Key Questions |
