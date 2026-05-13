@@ -12,7 +12,7 @@ st.set_page_config(page_title="Supply Chain Command Center", layout="wide", page
 STATUS_COLORS = {"DELIVERED": "#2ECC71", "IN_TRANSIT": "#3498DB", "DELAYED": "#F39C12", "STUCK": "#E74C3C", "CANCELLED": "#95A5A6"}
 CONGESTION_COLORS = {"NORMAL": "#2ECC71", "MODERATE": "#3498DB", "HIGH": "#F39C12", "CRITICAL": "#E74C3C"}
 
-page = st.sidebar.radio("Navigation", ["Overview", "Carrier Performance", "Port Congestion", "Stuck Shipments", "Live Map", "Logistics Search", "Ask Supply Chain"], label_visibility="collapsed")
+page = st.sidebar.radio("Navigation", ["Overview", "Carrier Performance", "Port Congestion", "Stuck Shipments", "Logistics Search", "Ask Supply Chain"], label_visibility="collapsed")
 st.sidebar.divider()
 st.sidebar.markdown("### Supply Chain Command")
 st.sidebar.caption("Real-time logistics monitoring across 30 carriers, 20 ports, 15 warehouses")
@@ -55,7 +55,7 @@ if page == "Overview":
 
     if stuck > 0:
         delayed_sg = ship[(ship["STATUS"]=="DELAYED") & (ship["ORIGIN_PORT_NAME"]=="Singapore PSA")]
-        st.error(f"INCIDENT: {stuck} shipments STUCK at Singapore PSA (Pacific Express Lines) \u2014 {len(delayed_sg)} downstream shipments DELAYED \u2014 {impact_at_risk/1e6:.1f}M impact at risk")
+        st.error(f"INCIDENT: {stuck} shipments STUCK at Singapore PSA (Pacific Express Lines) — {len(delayed_sg)} downstream shipments DELAYED — {impact_at_risk/1e6:.1f}M impact at risk")
 
     c1, c2, c3, c4, c5 = st.columns(5)
     c1.metric("Total Shipments", f"{len(ship):,}")
@@ -184,68 +184,6 @@ elif page == "Stuck Shipments":
         st.warning(f"{len(delayed_sg)} shipments delayed by Singapore congestion")
         st.dataframe(delayed_sg[["SHIPMENT_ID", "CARRIER_NAME", "DEST_PORT_NAME", "COMMODITY_TYPE", "DAYS_DELAYED", "VALUE_USD"]].reset_index(drop=True), use_container_width=True)
 
-elif page == "Live Map":
-    st.title("Live Vessel Map")
-    st.caption("Real-time vessel positions from Snowflake")
-    try:
-        vessels = session.sql("SELECT VESSEL_NAME, CARRIER_NAME, LAT, LON, HEADING_DEG, SPEED_KTS, DESTINATION_PORT, STATUS FROM MANUFACTURING_SUPPLY_CHAIN.CURATED.VW_VESSEL_LIVE").to_pandas()
-        ports = load_ports()
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Vessels Tracked", len(vessels))
-        c2.metric("Stuck", int((vessels["STATUS"]=="STUCK").sum()))
-        c3.metric("In Transit", int((vessels["STATUS"]=="IN_TRANSIT").sum()))
-        c4.metric("Avg Speed (kts)", f"{vessels['SPEED_KTS'].astype(float).mean():.1f}")
-        if int((vessels["STATUS"]=="STUCK").sum()) > 0:
-            st.error("3 vessels of Pacific Express Lines stuck at Singapore PSA — loitering > 6 hours")
-        st.markdown('<span style="font-size:14px;"><span style="color:#3498DB;">&#9679;</span> Port&nbsp;&nbsp;&nbsp;<span style="color:#2ECC71;">&#9679;</span> In Transit&nbsp;&nbsp;&nbsp;<span style="color:#E74C3C;">&#9679;</span> Stuck</span>', unsafe_allow_html=True)
-        import pydeck as pdk
-        color_map = {"STUCK": [231, 76, 60, 200], "IN_TRANSIT": [46, 204, 113, 200]}
-        vessels["color"] = vessels["STATUS"].map(color_map).apply(lambda x: x if x else [149, 165, 166, 200])
-        vessels["NAME"] = vessels["VESSEL_NAME"]
-        vessels["DETAIL"] = vessels["CARRIER_NAME"] + " | " + vessels["STATUS"] + " | " + vessels["SPEED_KTS"].astype(str) + " kts → " + vessels["DESTINATION_PORT"]
-        port_coords = ports.set_index("PORT_NAME")[["LAT", "LON"]].rename(columns={"LAT": "DEST_LAT", "LON": "DEST_LON"})
-        vessels = vessels.merge(port_coords, left_on="DESTINATION_PORT", right_index=True, how="left")
-        ports["NAME"] = ports["PORT_NAME"]
-        ports["DETAIL"] = "Port | " + ports["COUNTRY"]
-        vessel_layer = pdk.Layer(
-            "ScatterplotLayer",
-            data=vessels,
-            get_position=["LON", "LAT"],
-            get_fill_color="color",
-            get_radius=60000,
-            pickable=True,
-        )
-        route_layer = pdk.Layer(
-            "ArcLayer",
-            data=vessels[vessels["STATUS"] == "IN_TRANSIT"],
-            get_source_position=["LON", "LAT"],
-            get_target_position=["DEST_LON", "DEST_LAT"],
-            get_source_color=[46, 204, 113, 160],
-            get_target_color=[52, 152, 219, 160],
-            get_width=2,
-            pickable=False,
-        )
-        port_layer = pdk.Layer(
-            "ScatterplotLayer",
-            data=ports,
-            get_position=["LON", "LAT"],
-            get_fill_color=[52, 152, 219, 180],
-            get_radius=50000,
-            pickable=True,
-        )
-        view_state = pdk.ViewState(latitude=20, longitude=100, zoom=2, pitch=0)
-        deck = pdk.Deck(
-            layers=[port_layer, route_layer, vessel_layer],
-            initial_view_state=view_state,
-            tooltip={"html": "<b>{NAME}</b><br/>{DETAIL}", "style": {"backgroundColor": "#1a1a2e", "color": "white"}},
-        )
-        st.pydeck_chart(deck)
-
-        st.subheader("Vessels")
-        st.dataframe(vessels[["VESSEL_NAME", "CARRIER_NAME", "LAT", "LON", "HEADING_DEG", "SPEED_KTS", "DESTINATION_PORT", "STATUS"]].reset_index(drop=True), use_container_width=True)
-    except Exception as e:
-        st.error(f"Live map error: {e}")
-
 elif page == "Logistics Search":
     st.title("Logistics Policy Search")
     st.caption("Cortex Search across shipping policies, contracts, and procedures")
@@ -307,5 +245,3 @@ elif page == "Ask Supply Chain":
                     st.error(parsed)
             except Exception as e:
                 st.error(f"Error: {e}")
-
-
