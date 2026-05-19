@@ -96,6 +96,14 @@ Run the SQL scripts in `snowflake/` (skip `01_integrations.sql`) and deploy the 
 ### Full AWS + Snowflake
 Run all SQL scripts including `01_integrations.sql`, deploy the main Streamlit app from `streamlit/`, then run the QuickSight setup from `quicksight/`.
 
+## Business Impact
+
+Industry research and Snowflake customer outcomes:
+- **Unplanned downtime** costs manufacturers $50B annually -- Deloitte
+- **AI-driven supply chain visibility** reduces disruption response time by 30-50% -- McKinsey
+- **Port congestion** cost the global economy $30B+ in 2024 -- Drewry Maritime Research
+- **Real-time vessel tracking** reduces port wait times by 25-40% -- McKinsey Maritime
+
 ## Key Demo Numbers
 
 - **50,000** shipments tracked globally
@@ -107,4 +115,5 @@ Run all SQL scripts including `01_integrations.sql`, deploy the main Streamlit a
 ## License
 
 Apache 2.0 — See [LICENSE](LICENSE) for details.
-This is a personal project and is not an official Snowflake offering. It comes with no support or warranty. Use it at your own risk. Snowflake has no obligation to maintain, update, or support this code. Do not use this code in production without thorough review and testing.
+
+This is a personal demo project and is not an official Snowflake offering. It comes with no support or warranty. Industry metrics cited are from publicly available third-party research and Snowflake customer stories; they represent reported outcomes and are not guarantees of results.
