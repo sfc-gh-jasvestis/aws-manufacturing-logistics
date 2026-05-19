@@ -103,8 +103,8 @@ Industry research and Snowflake customer outcomes:
 - **AI-driven supply chain visibility** reduces disruption response time by 30-50% -- McKinsey
 - **Port congestion** cost the global economy $30B+ in 2024 -- Drewry Maritime Research
 - **Real-time vessel tracking** reduces port wait times by 25-40% -- McKinsey Maritime
-- **BMW Group** saved 25% on large data workloads and launched 60 use cases in 18 months on Snowflake -- snowflake.com/customers
-- **Penske Logistics** built a new AI model in <15 days using Snowflake Cortex AI -- snowflake.com/customers
+- **BMW Group** saved 25% on large data workloads and launched 60 use cases in 18 months on Snowflake -- [snowflake.com/customers/bmw-group](https://www.snowflake.com/en/customers/all-customers/case-study/bmw-group/)
+- **Penske Logistics** built a new AI model in <15 days using Snowflake Cortex AI -- [snowflake.com/customers/penske](https://www.snowflake.com/en/customers/all-customers/case-study/penske/)
 
 ## Key Demo Numbers
 
