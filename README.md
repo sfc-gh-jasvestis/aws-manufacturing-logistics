@@ -1,4 +1,4 @@
-# Supply Chain Command Center
+# Manufacturing Supply Chain Command Center
 
 Real-time supply chain visibility powered by Snowflake Cortex AI — from raw logistics data to intelligent recommendations in minutes.
 
@@ -99,10 +99,10 @@ Run all SQL scripts including `01_integrations.sql`, deploy the main Streamlit a
 ## Business Impact
 
 Industry research and Snowflake customer outcomes:
-- **Unplanned downtime** costs manufacturers $50B annually -- Deloitte
-- **AI-driven supply chain visibility** reduces disruption response time by 30-50% -- McKinsey
-- **Port congestion** cost the global economy $30B+ in 2024 -- Drewry Maritime Research
-- **Real-time vessel tracking** reduces port wait times by 25-40% -- McKinsey Maritime
+- **Unplanned downtime** costs manufacturers $50B annually -- [Deloitte](https://www.deloitte.com/us/en/services/consulting/services/predictive-maintenance-and-the-smart-factory.html)
+- **AI-driven supply chain visibility** reduces disruption response time by 30-50% -- [McKinsey](https://www.mckinsey.com/capabilities/operations/our-insights/decoding-disruption-to-reshape-manufacturing-footprints)
+- **Port congestion** cost the global economy $30B+ in 2024 -- [Drewry Maritime Research](https://www.drewry.co.uk/maritime-research-products/maritime-research-products/container-freight-rate-insight-annual-subscription)
+- **Real-time vessel tracking** reduces port wait times by 25-40% -- [McKinsey Maritime](https://www.mckinsey.com/industries/travel-logistics-and-infrastructure/our-insights)
 - **BMW Group** saved 25% on large data workloads and launched 60 use cases in 18 months on Snowflake -- [snowflake.com/customers/bmw-group](https://www.snowflake.com/en/customers/all-customers/case-study/bmw-group/)
 - **Penske Logistics** built a new AI model in <15 days using Snowflake Cortex AI -- [snowflake.com/customers/penske](https://www.snowflake.com/en/customers/all-customers/case-study/penske/)
 
