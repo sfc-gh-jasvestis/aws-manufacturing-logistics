@@ -1,4 +1,4 @@
-# Manufacturing Supply Chain Command Center
+# Manufacturing Logistics Command Center
 
 Real-time supply chain visibility powered by Snowflake Cortex AI — from raw logistics data to intelligent recommendations in minutes.
 
